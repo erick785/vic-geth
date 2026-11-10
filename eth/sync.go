@@ -262,6 +262,7 @@ func (cs *chainSyncer) nextSyncOp() *chainSyncOp {
 	if op.td.Cmp(ourTD) <= 0 {
 		return nil // We're in sync.
 	}
+	op.logExperimentCandidate(ourTD)
 	return op
 }
 
@@ -295,7 +296,12 @@ func (cs *chainSyncer) modeAndLocalHead() (downloader.SyncMode, *big.Int) {
 // startSync launches doSync in a new goroutine.
 func (cs *chainSyncer) startSync(op *chainSyncOp) {
 	cs.doneCh = make(chan error, 1)
-	go func() { cs.doneCh <- cs.pm.doSync(op) }()
+	go func() {
+		op.logExperimentStart()
+		err := cs.pm.doSync(op)
+		op.logExperimentEnd(err)
+		cs.doneCh <- err
+	}()
 }
 
 // doSync synchronizes the local blockchain with a remote peer.

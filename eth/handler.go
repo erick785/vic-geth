@@ -319,6 +319,7 @@ func (pm *ProtocolManager) handle(p *peer) error {
 		number  = head.Number.Uint64()
 		td      = pm.blockchain.GetTd(hash, number)
 	)
+	td = vicExperimentAdvertisedTD(p, pm.networkID, td)
 	forkID := forkid.NewID(pm.blockchain.Config(), pm.blockchain.Genesis().Hash(), pm.blockchain.CurrentHeader().Number.Uint64())
 	if err := p.Handshake(pm.networkID, td, hash, genesis.Hash(), forkID, pm.forkFilter); err != nil {
 		p.Log().Debug("Ethereum handshake failed", "err", err)
@@ -401,6 +402,9 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		var query getBlockHeadersData
 		if err := msg.Decode(&query); err != nil {
 			return errResp(ErrDecode, "%v: %v", msg, err)
+		}
+		if vicExperimentSuppressHeaders(p) {
+			return nil
 		}
 		hashMode := query.Origin.Hash != (common.Hash{})
 		first := true
